@@ -8,10 +8,12 @@ pub struct WorkspaceState {
     current_id: i32,
     monitor_ids: Vec<i32>,
     occupied_ids: Vec<i32>,
+    empty_ids: Vec<i32>,
     no_empty_before: bool,
     no_empty_after: bool,
     previous: bool,
     cycle: bool,
+    max_one_empty: bool,
 }
 
 /// A `WorkspaceState` is the current state of Hyprland.
@@ -23,18 +25,21 @@ impl WorkspaceState {
     ///
     /// Vectors are sorted so it's easier to perform operations on them.
     #[must_use]
-    pub fn new(current_id: i32, mut monitor_ids: Vec<i32>, mut occupied_ids: Vec<i32>) -> Self {
+    pub fn new(current_id: i32, mut monitor_ids: Vec<i32>, mut occupied_ids: Vec<i32>, mut empty_ids: Vec<i32>) -> Self {
         monitor_ids.sort_unstable();
         occupied_ids.sort_unstable();
+        empty_ids.sort_unstable();
 
         Self {
             current_id,
             monitor_ids,
             occupied_ids,
+            empty_ids,
             no_empty_before: false,
             no_empty_after: false,
             previous: false,
             cycle: false,
+            max_one_empty: false,
         }
     }
 
@@ -49,7 +54,7 @@ impl WorkspaceState {
     #[must_use]
     pub fn get_previous_id(&self) -> i32 {
         if self.monitor_ids[0] == self.current_id {
-            if self.monitor_ids[0] == 1 || self.no_empty_before || self.cycle {
+            if self.monitor_ids[0] == 1 || self.no_empty_before || self.cycle || (self.max_one_empty && self.empty_ids.contains(&self.current_id)) {
                 if self.cycle {
                     self.monitor_ids[self.monitor_ids.len() - 1]
                 } else {
@@ -84,7 +89,7 @@ impl WorkspaceState {
     #[must_use]
     pub fn get_next_id(&self) -> i32 {
         if self.monitor_ids[self.monitor_ids.len() - 1] == self.current_id {
-            if self.monitor_ids[self.monitor_ids.len() - 1] == i32::MAX || self.no_empty_after || self.cycle {
+            if self.monitor_ids[self.monitor_ids.len() - 1] == i32::MAX || self.no_empty_after || self.cycle || (self.max_one_empty && self.empty_ids.contains(&self.current_id)) {
                 if self.cycle {
                     self.monitor_ids[0]
                 } else {
@@ -130,6 +135,10 @@ impl WorkspaceState {
     /// Sets `cycle`
     pub fn set_cycle(&mut self, cycle: bool) {
         self.cycle = cycle;
+    }
+
+    pub fn set_max_one_empty(&mut self, max_one_empty: bool) {
+        self.max_one_empty = max_one_empty;
     }
 
     /// Derives the id a user wants based on the current state

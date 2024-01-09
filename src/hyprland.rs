@@ -23,9 +23,11 @@ pub fn get_state() -> hyprland::Result<WorkspaceState> {
         .map(|workspace| workspace.id)
         .collect();
 
-    let occupied_ids: Vec<i32> = workspaces.map(|workspace| workspace.id).collect();
+    let occupied_ids: Vec<i32> = workspaces.clone().map(|workspace| workspace.id).collect();
 
-    Ok(WorkspaceState::new(current_id, monitor_ids, occupied_ids))
+    let empty_ids: Vec<i32> = workspaces.into_iter().filter(|workspace| workspace.windows == 0).map(|workspace| workspace.id).collect();
+
+    Ok(WorkspaceState::new(current_id, monitor_ids, occupied_ids, empty_ids))
 }
 
 /// Gets whether the current workspace is a special workspace or not.
