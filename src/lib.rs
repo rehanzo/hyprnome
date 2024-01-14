@@ -16,6 +16,7 @@ pub struct WorkspaceState {
     cycle: bool,
     limit_workspace_range: bool,
     _move: bool,
+    end: bool,
 }
 
 /// A `WorkspaceState` is the current state of Hyprland.
@@ -42,6 +43,7 @@ impl WorkspaceState {
             cycle: false,
             limit_workspace_range: false,
             _move: false,
+            end: false,
         }
     }
 
@@ -78,6 +80,8 @@ impl WorkspaceState {
 
                 self.current_id
             }
+        } else if self.end {
+            self.monitor_ids[0]
         } else {
             self.monitor_ids[self.monitor_ids.iter().position(|&x| x == self.current_id).unwrap() - 1]
         }
@@ -120,6 +124,8 @@ impl WorkspaceState {
                     self.current_id
                 }
             }
+        } else if self.end {
+            self.monitor_ids[self.monitor_ids.len() - 1]
         } else {
             self.monitor_ids[self.monitor_ids.iter().position(|&x| x == self.current_id).unwrap() + 1]
         }
@@ -153,6 +159,11 @@ impl WorkspaceState {
     /// Sets `_move`
     pub fn set_move(&mut self, _move: bool) {
         self._move = _move;
+    }
+
+    /// Sets `end`
+    pub fn set_end(&mut self, end: bool) {
+        self.end = end;
     }
 
     /// Derives the id a user wants based on the current state
