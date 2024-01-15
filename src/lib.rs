@@ -10,6 +10,7 @@ pub struct WorkspaceState {
     monitor_ids: Vec<i32>,
     occupied_ids: Vec<i32>,
     workspace_windows: HashMap<i32, u16>,
+    graph_matrix: Vec<Vec<i32>>,
     no_empty_before: bool,
     no_empty_after: bool,
     previous: bool,
@@ -17,6 +18,7 @@ pub struct WorkspaceState {
     limit_workspace_range: bool,
     _move: bool,
     end: bool,
+    spread: bool,
 }
 
 /// A `WorkspaceState` is the current state of Hyprland.
@@ -28,7 +30,7 @@ impl WorkspaceState {
     ///
     /// Vectors are sorted so it's easier to perform operations on them.
     #[must_use]
-    pub fn new(current_id: i32, mut monitor_ids: Vec<i32>, mut occupied_ids: Vec<i32>, workspace_windows: HashMap<i32, u16>) -> Self {
+    pub fn new(current_id: i32, mut monitor_ids: Vec<i32>, mut occupied_ids: Vec<i32>, workspace_windows: HashMap<i32, u16>, graph_matrix: Vec<Vec<i32>>) -> Self {
         monitor_ids.sort_unstable();
         occupied_ids.sort_unstable();
 
@@ -37,6 +39,7 @@ impl WorkspaceState {
             monitor_ids,
             occupied_ids,
             workspace_windows,
+            graph_matrix,
             no_empty_before: false,
             no_empty_after: false,
             previous: false,
@@ -44,7 +47,30 @@ impl WorkspaceState {
             limit_workspace_range: false,
             _move: false,
             end: false,
+            spread: false,
         }
+    }
+
+    /// finds adequate id
+    pub fn allocate_between(&self, start: i32, end: i32) -> i32 {
+        let mut graph_matrix = self.graph_matrix.clone();
+        let mut proper_start = start.clone();
+        let mut proper_end = end.clone();
+        if start > end {
+            for vec in graph_matrix.iter_mut() {
+                vec.reverse();
+            }
+            proper_start = end.clone();
+            proper_end = start.clone();
+        };
+        for level in graph_matrix {
+            for node in level {
+                if node >= proper_start && node <= proper_end && !self.occupied_ids.contains(&node) {
+                    return node;
+                }
+            }
+        }
+        self.current_id
     }
 
     /// Gets the previous workspace on a monitor, or try to choose the next left-most empty workspace
@@ -67,6 +93,8 @@ impl WorkspaceState {
                 } else {
                     self.current_id
                 }
+            } else if true {
+                self.allocate_between(self.current_id, 0)
             } else {
                 let mut i = self.current_id - 1;
 
@@ -80,6 +108,8 @@ impl WorkspaceState {
 
                 self.current_id
             }
+        } else if self.spread {
+            self.allocate_between(self.monitor_ids[self.monitor_ids.iter().position(|&x| x == self.current_id).unwrap() - 1], self.current_id)
         } else if self.end {
             self.monitor_ids[0]
         } else {
@@ -107,6 +137,8 @@ impl WorkspaceState {
                 } else {
                     self.current_id
                 }
+            } else if true {
+                self.allocate_between(self.current_id, i32::MAX)
             } else {
                 let mut i = self.current_id + 1;
 
@@ -126,6 +158,8 @@ impl WorkspaceState {
             }
         } else if self.end {
             self.monitor_ids[self.monitor_ids.len() - 1]
+        } else if self.spread {
+            self.allocate_between(self.current_id, self.monitor_ids[self.monitor_ids.iter().position(|&x| x == self.current_id).unwrap() + 1])
         } else {
             self.monitor_ids[self.monitor_ids.iter().position(|&x| x == self.current_id).unwrap() + 1]
         }
@@ -164,6 +198,11 @@ impl WorkspaceState {
     /// Sets `end`
     pub fn set_end(&mut self, end: bool) {
         self.end = end;
+    }
+
+    /// Sets `spread`
+    pub fn set_spread(&mut self, spread: bool) {
+        self.spread = spread;
     }
 
     /// Derives the id a user wants based on the current state

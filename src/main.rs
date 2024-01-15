@@ -7,7 +7,7 @@ mod hyprland;
 ///
 /// Specific features are abstracted into lib to make things testable.
 fn main() {
-    let [_move, keep_special, previous, no_empty, no_empty_before, no_empty_after, cycle, limit_workspace_range, end] = cli::get_options();
+    let [_move, keep_special, previous, no_empty, no_empty_before, no_empty_after, cycle, limit_workspace_range, end, spread] = cli::get_options();
 
     if let Ok(mut state) = hyprland::get_state() {
         state.set_no_empty_before(no_empty || no_empty_before);
@@ -17,6 +17,7 @@ fn main() {
         state.set_limit_workspace_range(limit_workspace_range);
         state.set_move(_move);
         state.set_end(end);
+        state.set_spread(spread);
 
         cli::log(&format!("{state}"));
 
