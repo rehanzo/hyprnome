@@ -126,6 +126,14 @@ struct Cli {
     #[arg(short, long, default_value_t = false)]
     cycle: bool,
 
+    /// Cycle between workspaces instead of creating new ones
+    ///
+    /// This flag makes it possible to cycle to the last workspace on a monitor when there are no
+    /// other workspaces before, and to cycle to the first workspace on a monitor when there are no
+    /// other workspaces after.
+    #[arg(short, long, default_value_t = false)]
+    spread: bool,
+
     /// Print debugging information
     #[arg(short, long, default_value_t = false)]
     verbose: bool,
@@ -141,7 +149,7 @@ pub fn log(text: &str) {
 }
 
 /// Gets an ID to dispatch based on the current workspace state and cli options
-pub fn get_options() -> [bool; 9] {
+pub fn get_options() -> [bool; 10] {
     let Cli {
         _move,
         keep_special,
@@ -150,10 +158,11 @@ pub fn get_options() -> [bool; 9] {
         no_empty_before,
         no_empty_after,
         cycle,
+        spread,
         limit_workspace_range,
         end,
         ..
     } = Cli::parse();
 
-    [_move, keep_special, previous, no_empty, no_empty_before, no_empty_after, cycle, limit_workspace_range, end]
+    [_move, keep_special, previous, no_empty, no_empty_before, no_empty_after, cycle, spread, limit_workspace_range, end]
 }

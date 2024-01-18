@@ -10,10 +10,14 @@ pub struct WorkspaceState {
     monitor_ids: Vec<i32>,
     occupied_ids: Vec<i32>,
     workspace_windows: HashMap<i32, u16>,
+    graph_min: i32,
+    graph_max: i32,
+    top_nodes: Vec<i32>,
     no_empty_before: bool,
     no_empty_after: bool,
     previous: bool,
     cycle: bool,
+    spread: bool,
     limit_workspace_range: bool,
     _move: bool,
     end: bool,
@@ -28,19 +32,24 @@ impl WorkspaceState {
     ///
     /// Vectors are sorted so it's easier to perform operations on them.
     #[must_use]
-    pub fn new(current_id: i32, mut monitor_ids: Vec<i32>, mut occupied_ids: Vec<i32>, workspace_windows: HashMap<i32, u16>) -> Self {
+    pub fn new(current_id: i32, mut monitor_ids: Vec<i32>, mut occupied_ids: Vec<i32>, workspace_windows: HashMap<i32, u16>, graph_min: i32, graph_max: i32, mut top_nodes: Vec<i32>) -> Self {
         monitor_ids.sort_unstable();
         occupied_ids.sort_unstable();
+        top_nodes.sort_unstable();
 
         Self {
             current_id,
             monitor_ids,
             occupied_ids,
             workspace_windows,
+            graph_min,
+            graph_max,
+            top_nodes,
             no_empty_before: false,
             no_empty_after: false,
             previous: false,
             cycle: false,
+            spread: false,
             limit_workspace_range: false,
             _move: false,
             end: false,
@@ -67,6 +76,10 @@ impl WorkspaceState {
                 } else {
                     self.current_id
                 }
+            } else if true {
+                let left = self.graph_min;
+                let right = self.current_id;
+                self.get_ws_spread(left, right, true)
             } else {
                 let mut i = self.current_id - 1;
 
@@ -82,6 +95,10 @@ impl WorkspaceState {
             }
         } else if self.end {
             self.monitor_ids[0]
+        } else if self.spread {
+            let left = self.monitor_ids[self.monitor_ids.iter().position(|&x| x == self.current_id).unwrap() - 1];
+            let right = self.current_id;
+            self.get_ws_spread(left, right, true)
         } else {
             self.monitor_ids[self.monitor_ids.iter().position(|&x| x == self.current_id).unwrap() - 1]
         }
@@ -107,6 +124,10 @@ impl WorkspaceState {
                 } else {
                     self.current_id
                 }
+            } else if true {
+                let left = self.current_id;
+                let right = self.graph_max;
+                self.get_ws_spread(left, right, false)
             } else {
                 let mut i = self.current_id + 1;
 
@@ -126,9 +147,26 @@ impl WorkspaceState {
             }
         } else if self.end {
             self.monitor_ids[self.monitor_ids.len() - 1]
+        } else if self.spread {
+            let left = self.current_id;
+            let right = self.monitor_ids[self.monitor_ids.iter().position(|&x| x == self.current_id).unwrap() + 1];
+            self.get_ws_spread(left, right, false)
         } else {
             self.monitor_ids[self.monitor_ids.iter().position(|&x| x == self.current_id).unwrap() + 1]
         }
+    }
+
+    fn get_ws_spread(&self, left: i32, right: i32, reverse: bool) -> i32 {
+        let mut top_nodes = self.top_nodes.clone();
+        if reverse {
+            top_nodes.reverse();
+        }
+        for node in top_nodes {
+            if node >= left && node <= right && !self.occupied_ids.contains(&node) {
+                return node;
+            }
+        }
+        left + (right - left) / 2
     }
 
     /// Sets `no_empty_before`
@@ -149,6 +187,11 @@ impl WorkspaceState {
     /// Sets `cycle`
     pub fn set_cycle(&mut self, cycle: bool) {
         self.cycle = cycle;
+    }
+
+    /// Sets `spread`
+    pub fn set_spread(&mut self, spread: bool) {
+        self.spread = spread;
     }
 
     /// Sets `limit_workspace_range`

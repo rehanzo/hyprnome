@@ -34,7 +34,27 @@ pub fn get_state() -> hyprland::Result<WorkspaceState> {
         workspace_windows.insert(workspace.id, workspace.windows);
     }
 
-    Ok(WorkspaceState::new(current_id, monitor_ids, occupied_ids, workspace_windows))
+    let n_monitors = monitors.into_iter().len() as i32;
+
+    let mut sector_ranges: Vec<i32> = (1..=n_monitors - 1).map(|x| x * (i32::MAX / n_monitors)).collect();
+    sector_ranges.insert(0, 0);
+    sector_ranges.insert(sector_ranges.len(), i32::MAX);
+
+    let mut graph_min = 0;
+    let mut graph_max = 0;
+
+    for i in 0..sector_ranges.len() - 1 {
+        if monitor_ids.iter().min().unwrap() <= &sector_ranges[i + 1] {
+            graph_min = sector_ranges[i];
+            graph_max = sector_ranges[i + 1];
+            break;
+        }
+    }
+
+    let n_nodes = 32 * n_monitors;
+    let top_nodes: Vec<i32> = (1..n_nodes).map(|n_node| ((graph_max - graph_min) / n_nodes) * n_node).collect();
+
+    Ok(WorkspaceState::new(current_id, monitor_ids, occupied_ids, workspace_windows, graph_min, graph_max, top_nodes))
 }
 
 /// Gets whether the current workspace is a special workspace or not.
